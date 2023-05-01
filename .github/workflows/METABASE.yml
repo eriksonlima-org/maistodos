@@ -48,6 +48,13 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
       # Upload files to git hub arctifact
 
+      - name: Upload math result for job 2
+        uses: actions/upload-artifact@v3
+        with:
+          name: my-artifact
+          path: ${{ github.workspace }}/image.env
+          retention-days: 1
+
    # Deploy stage
 
 
@@ -65,6 +72,12 @@ jobs:
         
       - uses: aws-actions/amazon-ecr-login@v1
         id: login-ecr
+      
+      - name: Download Macth Result for Job 2
+        uses: actions/download-artifact@v3
+        with:
+          name: my-artifact
+          path: ${{ github.workspace }}/image.env
           
       - if: ${{ inputs.apply }} == true
         name: Deploy ${{ github.event.repository.name }} em EKS
@@ -74,7 +87,7 @@ jobs:
           git clone https://github.com/eriksonlima-org/argocd.git
 
           #Set TAG Image
-          source ${{ github.workspace }}/image.env
+          source ${{ github.workspace }}/image.env/image.env
           newTag=$(echo $IMAGE_TAG | cut -d ':' -f2)
           oldTag=$(grep -m1 -e "newTag:" ./argocd/deployments/desafio-maistodos/metabase/overlays/kustomization.yaml | cut -d ':' -f2)
           sed -i "s|$oldTag| $newTag|" ./argocd/deployments/desafio-maistodos/metabase/overlays/kustomization.yaml
