@@ -96,6 +96,7 @@ jobs:
           git add . && git commit -am "Editando ${{ github.event.repository.name }} em PRD - $newTag"
           git push https://${{ secrets.CI_JOB_TOKEN}}@github.com/eriksonlima-org/argocd.git HEAD:master
 
+
   argocd_refresh:
     runs-on: self-hosted
     needs: argocd_setup
