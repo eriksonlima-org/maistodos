@@ -42,7 +42,7 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
-          echo export IMAGE_TAG="SNAPSHOT-$(git rev-parse --short "$GITHUB_SHA")" > image.env
+          echo export IMAGE_TAG="RELEASE-$(git rev-parse --short "$GITHUB_SHA")" > image.env
           source ${{ github.workspace }}/image.env
           docker build --file ${{ github.workspace }}/metabase/Dockerfile --build-arg repo=${{ github.event.repository.name }} --build-arg environment=prd --tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
