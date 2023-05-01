@@ -104,4 +104,4 @@ jobs:
         run: |
           cd /usr/local/bin
           ./argocd login argocd.maistodos.click --username admin --password ${{ secrets.ARGOCD_PASSWORD }}
-          ./argocd app get ${{ github.event.repository.name }}-prd --refresh
+          ./argocd app get ${{ github.event.repository.name }} --refresh
