@@ -57,6 +57,7 @@ jobs:
 
    # Deploy stage
 
+
   argocd_setup:
     runs-on: self-hosted
     needs: build_image
