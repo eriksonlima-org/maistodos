@@ -1,0 +1,46 @@
+name: CI/CD EC2
+
+on:
+  push:
+    branches:  
+       - master
+    paths-ignore:
+      - 'infra/modules/**'
+      - 'infra/eks/**'
+      - 'infra/network/**'
+      - 'metabase/**'
+      - '.github/workflows/METABASE.yml'
+      - '.github/workflows/EKS.yml'  
+      - '.github/workflows/NETWORK.yml'
+      
+
+jobs:
+
+
+# Deploy stage
+  
+ Deploy:
+    name: 'Deploy'
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Branch 
+      uses: actions/checkout@v3
+    - uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+    
+    - name: Terraform plan 
+      run: |
+        cd infra/ec2
+        terraform init
+        terraform validate
+        terraform plan -out=plan.tfplan
+    
+    - if: github.ref == 'refs/heads/master'
+      name: Terraform apply
+      run: |
+        cd infra/ec2
+        terraform apply -auto-approve

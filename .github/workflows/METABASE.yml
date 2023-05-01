@@ -1,0 +1,105 @@
+name: Metabase deploy [PRD]
+
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - 'infra/**'
+      - '.github/workflows/EKS.yml'
+      - '.github/workflows/EC2.yml'
+      - '.github/workflows/NETWORK.yml'
+
+env:
+  ECR_REPOSITORY: eriksonlima/${{ github.event.repository.name }}
+
+#Start a project run os Ubuntu Machine  
+
+jobs:
+  build_image:
+    runs-on: self-hosted
+    steps:
+
+      - uses: actions/cache@v3
+        name: Cache dependencies
+        with:
+          path: ~/.m2
+          key: stacy-m2-dependencies
+
+      - uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      # Login into ECR Repository
+
+      - name: Logando no ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag and push image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          git clone https://github.com/eriksonlima-org/argocd.git
+          echo export IMAGE_TAG="SNAPSHOT-$(git rev-parse --short "$GITHUB_SHA")" > image.env
+          source ${{ github.workspace }}/image.env
+          docker build --file ./argocd/metabase/Dockerfile --build-arg repo=${{ github.event.repository.name }} --build-arg environment=prd --tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+      # Upload files to git hub arctifact
+
+      - name: Upload math result for job 2
+        uses: actions/upload-artifact@v3
+        with:
+          name: my-artifact
+          path: ${{ github.workspace }}
+          retention-days: 1
+
+   # Deploy stage
+
+  argocd_setup:
+    runs-on: self-hosted
+    needs: build_image
+    steps:
+      - uses: actions/checkout@v2
+      - name: Configure AWS Credentials to ECR
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+        
+      - uses: aws-actions/amazon-ecr-login@v1
+        id: login-ecr
+      
+      - name: Download Macth Result for Job 2
+        uses: actions/download-artifact@v3
+        with:
+          name: my-artifact
+          path: ${{ github.workspace }}
+          
+      - if: ${{ inputs.apply }} == true
+        name: Deploy ${{ github.event.repository.name }} em EKS
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          #Set TAG Image
+          source ${{ github.workspace }}/image.env
+          cd argocd
+          newTag=$(echo $IMAGE_TAG | cut -d ':' -f2)
+          oldTag=$(grep -m1 -e "newTag:" ./argocd/deployments/desafio-maistodos/metabase/overlays/kustomization.yaml | cut -d ':' -f2)
+          sed -i "s|$oldTag| $newTag|" ./argocd/deployments/desafio-maistodos/metabase/overlays/kustomization.yaml
+          #Git Add e Push Project
+          git add . && git commit -am "Editando ${{ github.event.repository.name }} em PRD - $newTag"
+          git push https://github.com/eriksonlima-org/argocd.git HEAD:master
+          
+  argocd_refresh:
+    runs-on: self-hosted
+    needs: argocd_setup
+    steps:
+      - name: Login ArgoCD and Refresh
+        run: |
+          cd /usr/local/bin
+          ./argocd login argocd.maistodos.click --username admin --password ${{ secrets.ARGOCD_PASSWORD }}
+          ./argocd app get ${{ github.event.repository.name }}-prd --refresh
