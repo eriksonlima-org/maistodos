@@ -12,4 +12,4 @@ ENV TZ America/Recife
 
 RUN curl -sSL https://github.com/eriksonlima-org/aws-env/raw/main/aws-env-linux -o aws-env && chmod +x aws-env
 
-RUN ./aws-env --formatInput=json
+RUN eval $(./aws-env --formatInput=json)
