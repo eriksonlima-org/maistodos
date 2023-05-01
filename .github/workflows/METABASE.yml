@@ -42,10 +42,10 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
-          git clone https://github.com/eriksonlima-org/argocd.git
+          git clone https://github.com/eriksonlima-org/maistodos.git
           echo export IMAGE_TAG="SNAPSHOT-$(git rev-parse --short "$GITHUB_SHA")" > image.env
           source ${{ github.workspace }}/image.env
-          docker build --file ./argocd/metabase/Dockerfile --build-arg repo=${{ github.event.repository.name }} --build-arg environment=prd --tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker build --file ./metabase/Dockerfile --build-arg repo=${{ github.event.repository.name }} --build-arg environment=prd --tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
       # Upload files to git hub arctifact
 
@@ -86,6 +86,7 @@ jobs:
         run: |
           #Set TAG Image
           source ${{ github.workspace }}/image.env
+          git clone https://github.com/eriksonlima-org/argocd.git
           cd argocd
           newTag=$(echo $IMAGE_TAG | cut -d ':' -f2)
           oldTag=$(grep -m1 -e "newTag:" ./argocd/deployments/desafio-maistodos/metabase/overlays/kustomization.yaml | cut -d ':' -f2)
@@ -94,7 +95,7 @@ jobs:
           git add . && git commit -am "Editando ${{ github.event.repository.name }} em PRD - $newTag"
           git push https://github.com/eriksonlima-org/argocd.git HEAD:master
           
-          
+
   argocd_refresh:
     runs-on: self-hosted
     needs: argocd_setup
