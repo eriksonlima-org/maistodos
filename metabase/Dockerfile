@@ -10,6 +10,6 @@ RUN apk update && apk upgrade && apk add --no-cache curl openssl ca-certificates
 RUN apk add --no-cache tzdata
 ENV TZ America/Recife
 
-RUN curl -sSL https://github.com/Droplr/aws-env/raw/master/bin/aws-env-linux-amd64 -o aws-env && chmod +x aws-env
+RUN curl -sSL https://github.com/eriksonlima-org/aws-env/raw/main/aws-env-linux -o aws-env && chmod +x aws-env
 
 CMD eval $(./aws-env --formatInput=json)
