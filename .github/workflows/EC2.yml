@@ -43,4 +43,4 @@ jobs:
       name: Terraform apply
       run: |
         cd infra/ec2
-        terraform destroy -auto-approve
+        terraform apply -auto-approve
