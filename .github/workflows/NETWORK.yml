@@ -41,4 +41,4 @@ jobs:
       name: Terraform apply
       run: |
         cd infra/network
-        terraform detroy -auto-approve
+        terraform destroy -auto-approve
